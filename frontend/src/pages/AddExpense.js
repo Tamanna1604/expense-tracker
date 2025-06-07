@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -11,11 +11,28 @@ import {
   CircularProgress,
   Chip,
   Grid,
+  Autocomplete,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import axios from 'axios';
+
+const CATEGORIES = [
+  'Food & Groceries',
+  'Utilities',
+  'Entertainment',
+  'Transportation',
+  'Healthcare',
+  'Shopping',
+  'Housing',
+  'Fitness',
+  'Food & Dining',
+  'Personal Care',
+  'Insurance',
+  'Education',
+  'Other'
+];
 
 const AddExpense = () => {
   const navigate = useNavigate();
@@ -26,6 +43,45 @@ const AddExpense = () => {
   const [error, setError] = useState('');
   const [category, setCategory] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isEditingCategory, setIsEditingCategory] = useState(false);
+  const [classifying, setClassifying] = useState(false);
+
+  // Debounce function for API calls
+  const debounce = (func, wait) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
+  // Classify text using Cohere API
+  const classifyText = async (text) => {
+    if (!text) return;
+    try {
+      setClassifying(true);
+      const response = await axios.post('http://localhost:5000/api/classify', { text });
+      setCategory(response.data.category);
+    } catch (error) {
+      console.error('Classification error:', error.response?.data || error.message);
+      // Don't show error to user, just keep the current category or set to 'Other'
+      if (!category) {
+        setCategory('Other');
+      }
+    } finally {
+      setClassifying(false);
+    }
+  };
+
+  // Debounced version of classifyText
+  const debouncedClassify = debounce(classifyText, 500);
+
+  // Update category when description changes
+  useEffect(() => {
+    if (description && !isEditingCategory) {
+      debouncedClassify(description);
+    }
+  }, [description, isEditingCategory]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,13 +94,14 @@ const AddExpense = () => {
         amount: parseFloat(amount),
         description,
         date: date.toISOString().split('T')[0],
+        category,
       });
 
-      setCategory(response.data.category);
       setSuccess(true);
       setAmount('');
       setDescription('');
       setDate(new Date());
+      setCategory('');
 
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {
@@ -72,7 +129,7 @@ const AddExpense = () => {
 
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Expense added successfully! Category: {category}
+            Expense added successfully!
           </Alert>
         )}
 
@@ -91,16 +148,63 @@ const AddExpense = () => {
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                required
-                fullWidth
-                label="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What did you spend on?"
-                helperText="The expense will be automatically categorized"
-              />
+              <Box sx={{ position: 'relative' }}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What did you spend on?"
+                  helperText={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                      {classifying ? (
+                        <CircularProgress size={16} />
+                      ) : category ? (
+                        <>
+                          <Typography variant="body2" color="text.secondary">
+                            Detected category:
+                          </Typography>
+                          <Chip
+                            label={category}
+                            color="primary"
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setIsEditingCategory(true)}
+                            sx={{ cursor: 'pointer' }}
+                          />
+                        </>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Type to see category suggestions
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </Box>
             </Grid>
+
+            {isEditingCategory && (
+              <Grid item xs={12}>
+                <Autocomplete
+                  value={category}
+                  onChange={(event, newValue) => {
+                    setCategory(newValue);
+                    setIsEditingCategory(false);
+                  }}
+                  options={CATEGORIES}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Category"
+                      fullWidth
+                      autoFocus
+                    />
+                  )}
+                />
+              </Grid>
+            )}
 
             <Grid item xs={12}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -112,19 +216,6 @@ const AddExpense = () => {
                 />
               </LocalizationProvider>
             </Grid>
-
-            {category && (
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2">Category:</Typography>
-                  <Chip
-                    label={category}
-                    color="primary"
-                    variant="outlined"
-                  />
-                </Box>
-              </Grid>
-            )}
 
             <Grid item xs={12}>
               <Button
