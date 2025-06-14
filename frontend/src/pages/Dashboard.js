@@ -85,26 +85,20 @@ const Dashboard = () => {
         const [
           expensesResponse,
           analyticsResponse,
-          suggestionsResponse,
           yearlyResponse,
-          budgetResponse,
           trendsResponse,
           topExpensesResponse
         ] = await Promise.all([
           axios.get(`${API_URL}/expenses/monthly?month=${month}&year=${year}&userId=${userId}`),
           axios.get(`${API_URL}/expenses/analytics?month=${month}&year=${year}&userId=${userId}`),
-          axios.get(`${API_URL}/savings/suggestions?month=${month}&year=${year}&userId=${userId}`),
           axios.get(`${API_URL}/expenses/yearly?year=${year}&userId=${userId}`),
-          axios.get(`${API_URL}/budgets/status?month=${month}&year=${year}&userId=${userId}`),
           axios.get(`${API_URL}/expenses/trends?userId=${userId}`),
           axios.get(`${API_URL}/expenses/top?userId=${userId}`)
         ]);
 
         setMonthlyData(expensesResponse.data);
         setCategoryData(analyticsResponse.data);
-        setSavingsSuggestions(suggestionsResponse.data);
         setYearlyData(yearlyResponse.data);
-        setBudgetStatus(budgetResponse.data);
         setSpendingTrends(trendsResponse.data);
         setTopExpenses(topExpensesResponse.data);
 
@@ -144,10 +138,21 @@ const Dashboard = () => {
     );
   }
 
-  const totalExpenses = monthlyData?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
+  // Calculate totals with proper type checking
+  const totalExpenses = monthlyData?.reduce((sum, expense) => {
+    const amount = parseFloat(expense.amount) || 0;
+    return sum + amount;
+  }, 0) || 0;
+
   const totalSavings = savingsSuggestions?.reduce((sum, suggestion) => sum + suggestion.potentialSavings, 0) || 0;
-  const previousMonthTotal = monthlyComparison?.reduce((sum, item) => sum + item.total, 0) || 0;
-  const spendingChange = ((totalExpenses - previousMonthTotal) / previousMonthTotal) * 100;
+  const previousMonthTotal = monthlyComparison?.reduce((sum, item) => {
+    const total = parseFloat(item.total) || 0;
+    return sum + total;
+  }, 0) || 0;
+
+  const spendingChange = previousMonthTotal > 0 
+    ? ((totalExpenses - previousMonthTotal) / previousMonthTotal) * 100 
+    : 0;
 
   // Category Chart Data
   const categoryChartData = {
@@ -155,14 +160,8 @@ const Dashboard = () => {
     datasets: [
       {
         label: 'Expenses by Category',
-        data: categoryData?.map(item => item.total) || [],
+        data: categoryData?.map(item => parseFloat(item.total) || 0) || [],
         backgroundColor: [
-          '#FF6384',
-          '#36A2EB',
-          '#FFCE56',
-          '#4BC0C0',
-          '#9966FF',
-          '#FF9F40',
           '#FF6384',
           '#36A2EB',
           '#FFCE56',
@@ -180,7 +179,7 @@ const Dashboard = () => {
     datasets: [
       {
         label: 'Daily Expenses',
-        data: monthlyData?.map(expense => expense.amount) || [],
+        data: monthlyData?.map(expense => parseFloat(expense.amount) || 0) || [],
         borderColor: '#2196f3',
         tension: 0.1,
       },
@@ -193,13 +192,13 @@ const Dashboard = () => {
     datasets: [
       {
         label: 'This Year',
-        data: yearlyData?.currentYear || [],
+        data: yearlyData?.currentYear?.map(amount => parseFloat(amount) || 0) || [],
         borderColor: '#2196f3',
         backgroundColor: 'rgba(33, 150, 243, 0.1)',
       },
       {
         label: 'Last Year',
-        data: yearlyData?.previousYear || [],
+        data: yearlyData?.previousYear?.map(amount => parseFloat(amount) || 0) || [],
         borderColor: '#f50057',
         backgroundColor: 'rgba(245, 0, 87, 0.1)',
       },
@@ -212,13 +211,13 @@ const Dashboard = () => {
     datasets: [
       {
         label: 'Current Month',
-        data: categoryData?.map(item => item.total) || [],
+        data: categoryData?.map(item => parseFloat(item.total) || 0) || [],
         backgroundColor: 'rgba(33, 150, 243, 0.2)',
         borderColor: '#2196f3',
       },
       {
         label: 'Previous Month',
-        data: monthlyComparison?.map(item => item.total) || [],
+        data: monthlyComparison?.map(item => parseFloat(item.total) || 0) || [],
         backgroundColor: 'rgba(245, 0, 87, 0.2)',
         borderColor: '#f50057',
       },
@@ -422,7 +421,7 @@ const Dashboard = () => {
                       secondary={`${expense.category} - ${new Date(expense.date).toLocaleDateString()}`}
                     />
                     <Typography variant="h6" color="primary">
-                      ${expense.amount.toFixed(2)}
+                      ${parseFloat(expense.amount || 0).toFixed(2)}
                     </Typography>
                   </ListItem>
                   {index < topExpenses.length - 1 && <Divider />}
