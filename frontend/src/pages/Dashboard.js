@@ -234,7 +234,7 @@ const Dashboard = () => {
               <Typography color="textSecondary" gutterBottom>
                 This Month's Spending
               </Typography>
-              <Typography variant="h4">${totalExpenses.toFixed(2)}</Typography>
+              <Typography variant="h4">₹{totalExpenses.toFixed(2)}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 {spendingChange > 0 ? (
                   <TrendingUp color="error" />
@@ -260,7 +260,7 @@ const Dashboard = () => {
                 Potential Savings
               </Typography>
               <Typography variant="h4" color="error">
-                ${totalSavings.toFixed(2)}
+                ₹{totalSavings.toFixed(2)}
               </Typography>
               <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
                 Based on your spending patterns
@@ -321,7 +321,7 @@ const Dashboard = () => {
                     beginAtZero: true,
                     title: {
                       display: true,
-                      text: 'Amount ($)'
+                      text: 'Amount (₹)'
                     }
                   }
                 }
@@ -369,7 +369,7 @@ const Dashboard = () => {
                     beginAtZero: true,
                     title: {
                       display: true,
-                      text: 'Amount ($)'
+                      text: 'Amount (₹)'
                     }
                   }
                 }
@@ -421,7 +421,7 @@ const Dashboard = () => {
                       secondary={`${expense.category} - ${new Date(expense.date).toLocaleDateString()}`}
                     />
                     <Typography variant="h6" color="primary">
-                      ${parseFloat(expense.amount || 0).toFixed(2)}
+                      ₹{parseFloat(expense.amount || 0).toFixed(2)}
                     </Typography>
                   </ListItem>
                   {index < topExpenses.length - 1 && <Divider />}
@@ -449,10 +449,10 @@ const Dashboard = () => {
                         </Typography>
                       </Box>
                       <Typography variant="body2" color="textSecondary">
-                        Current Spending: ${suggestion.currentSpending.toFixed(2)}
+                        Current Spending: ₹{suggestion.currentSpending.toFixed(2)}
                       </Typography>
                       <Typography variant="body2" color="error">
-                        Potential Savings: ${suggestion.potentialSavings.toFixed(2)}
+                        Potential Savings: ₹{suggestion.potentialSavings.toFixed(2)}
                       </Typography>
                       <Typography variant="body2" sx={{ mt: 1 }}>
                         {suggestion.suggestion}
