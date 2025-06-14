@@ -33,7 +33,7 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth();
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: `/dashboard/${user?.id}` },
     { text: 'Add Expense', icon: <AddIcon />, path: '/add-expense' },
     { text: 'Budgets', icon: <BudgetIcon />, path: '/budgets' },
     { text: 'Savings Goals', icon: <SavingsIcon />, path: '/savings-goals' },
@@ -44,6 +44,10 @@ const Layout = ({ children }) => {
   };
 
   const handleNavigation = (path) => {
+    if (path.includes('dashboard') && !user?.id) {
+      console.error('No user ID available for dashboard navigation');
+      return;
+    }
     navigate(path);
     setMobileOpen(false);
   };

@@ -46,6 +46,24 @@ const AddExpense = () => {
   const [isEditingCategory, setIsEditingCategory] = useState(false);
   const [classifying, setClassifying] = useState(false);
 
+  // Add useEffect to check token on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    console.log('AddExpense Component Mount - Token Check:', {
+      tokenExists: !!token,
+      tokenLength: token ? token.length : 0,
+      userExists: !!user,
+      userData: user ? JSON.parse(user) : null
+    });
+
+    // Check axios default headers
+    console.log('Axios Default Headers:', {
+      authorization: axios.defaults.headers.common['Authorization'],
+      headers: axios.defaults.headers
+    });
+  }, []);
+
   // Debounce function for API calls
   const debounce = (func, wait) => {
     let timeout;
@@ -89,12 +107,37 @@ const AddExpense = () => {
     setError('');
     setSuccess(false);
 
+    // Log token and headers before making the request
+    const token = localStorage.getItem('token');
+    console.log('Pre-request Token Check:', {
+      tokenExists: !!token,
+      tokenLength: token ? token.length : 0,
+      tokenValue: token ? `${token.substring(0, 10)}...` : null,
+      axiosHeaders: axios.defaults.headers.common['Authorization']
+    });
+
     try {
+      console.log('Making expense request with data:', {
+        amount: parseFloat(amount),
+        description,
+        date: date.toISOString().split('T')[0],
+        category,
+        headers: {
+          authorization: axios.defaults.headers.common['Authorization']
+        }
+      });
+
       const response = await axios.post('http://localhost:5000/api/expenses', {
         amount: parseFloat(amount),
         description,
         date: date.toISOString().split('T')[0],
         category,
+      });
+
+      console.log('Expense request successful:', {
+        status: response.status,
+        data: response.data,
+        headers: response.headers
       });
 
       setSuccess(true);
@@ -103,11 +146,30 @@ const AddExpense = () => {
       setDate(new Date());
       setCategory('');
 
+      // Get user data from localStorage for navigation
+      const userData = JSON.parse(localStorage.getItem('user'));
+      console.log('Navigation after success:', {
+        userData,
+        userId: userData?.id
+      });
+
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {
-        navigate('/');
+        if (userData?.id) {
+          navigate(`/dashboard/${userData.id}`);
+        } else {
+          console.error('No user ID found for navigation');
+          navigate('/login');
+        }
       }, 2000);
     } catch (err) {
+      console.error('Expense request failed:', {
+        error: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        headers: err.response?.headers,
+        requestHeaders: err.config?.headers
+      });
       setError(err.response?.data?.error || 'Failed to add expense');
     } finally {
       setLoading(false);
